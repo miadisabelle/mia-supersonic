@@ -1,0 +1,30 @@
+{
+  "name": "supersonic-osc-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for SuperSonic OSC motion-to-sound workflows",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "supersonic-osc-mcp": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "mcp",
+    "supersonic",
+    "osc",
+    "motion",
+    "sound",
+    "synthesis",
+    "ios"
+  ],
+  "author": "Mia",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

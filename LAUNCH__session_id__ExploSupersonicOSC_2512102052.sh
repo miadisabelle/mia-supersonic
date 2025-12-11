@@ -42,8 +42,10 @@ ORGANIZATION of DATA during our conversation
 
 -----
 Analyze carefully the whole sets of Milestone there is within this complex request.
+Another instance has used MCP named : sonic-charts to start creating charts for the various work, that might be the best place to plan and organize your work (you might see that they did incomplete work and add more charts or enhance their work, as long as you structure it well.
 
 " --mcp-config $session_id__ExploSupersonicOSC_2512102052__MCP_CONFIG --add-dir $session_id__ExploSupersonicOSC_2512102052__ADD_DIR --session-id $session_id__ExploSupersonicOSC_2512102052 \
-	--model sonnet
+	--model sonnet \
+	--allow-dangerously-skip-permissions
 
 #--permission-mode plan

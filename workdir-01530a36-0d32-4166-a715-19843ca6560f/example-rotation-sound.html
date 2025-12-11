@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Example 1: Rotation-Based Sound Modulation</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Cascadia Code', monospace, system-ui;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: #fff;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      background: linear-gradient(90deg, #00f5a0, #00d9ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: #aaa;
+      margin-bottom: 30px;
+      font-size: 0.9rem;
+    }
+
+    .status-bar {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #666;
+      animation: pulse 2s infinite;
+    }
+
+    .status-indicator.active {
+      background: #00f5a0;
+      box-shadow: 0 0 10px #00f5a0;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .controls {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      font-family: inherit;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .visualizer {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 30px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .phone-viz {
+      width: 200px;
+      height: 400px;
+      margin: 20px auto;
+      position: relative;
+      perspective: 1000px;
+    }
+
+    .phone {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 30px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      transform-style: preserve-3d;
+      transition: transform 0.1s;
+    }
+
+    .phone-screen {
+      position: absolute;
+      top: 20px;
+      left: 15px;
+      right: 15px;
+      bottom: 20px;
+      background: #000;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+    }
+
+    .sensor-data {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .sensor-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 15px;
+    }
+
+    .sensor-card h3 {
+      font-size: 0.9rem;
+      color: #00f5a0;
+      margin-bottom: 10px;
+    }
+
+    .sensor-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .mapping-info {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .mapping-info h2 {
+      font-size: 1.2rem;
+      margin-bottom: 15px;
+      color: #00d9ff;
+    }
+
+    .mapping-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .mapping-item {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 10px;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 5px;
+    }
+
+    .mapping-item strong {
+      color: #00f5a0;
+    }
+
+    code {
+      font-family: 'Cascadia Code', monospace;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎵 Example 1: Rotation-Based Sound Modulation</h1>
+    <p class="subtitle">Rotate your iPhone to control frequency, tilt to control volume</p>
+
+    <div class="status-bar">
+      <div class="status-item">
+        <div class="status-indicator" id="oscStatus"></div>
+        <span>OSC Bridge</span>
+      </div>
+      <div class="status-item">
+        <div class="status-indicator" id="sonicStatus"></div>
+        <span>SuperSonic</span>
+      </div>
+      <div class="status-item">
+        <div class="status-indicator" id="synthStatus"></div>
+        <span>Synth Playing</span>
+      </div>
+      <div class="status-item">
+        <span id="messageCount">Messages: 0</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="bootBtn">🚀 Boot SuperSonic</button>
+      <button id="startBtn" disabled>▶️ Start Synth</button>
+      <button id="stopBtn" disabled>⏹️ Stop Synth</button>
+    </div>
+
+    <div class="visualizer">
+      <h2>📱 iPhone Orientation</h2>
+      <div class="phone-viz">
+        <div class="phone" id="phoneViz">
+          <div class="phone-screen">📱</div>
+        </div>
+      </div>
+
+      <div class="sensor-data">
+        <div class="sensor-card">
+          <h3>Roll (Rotation)</h3>
+          <div class="sensor-value" id="rollValue">--</div>
+        </div>
+        <div class="sensor-card">
+          <h3>Pitch (Tilt)</h3>
+          <div class="sensor-value" id="pitchValue">--</div>
+        </div>
+        <div class="sensor-card">
+          <h3>Frequency (Hz)</h3>
+          <div class="sensor-value" id="freqValue">--</div>
+        </div>
+        <div class="sensor-card">
+          <h3>Amplitude</h3>
+          <div class="sensor-value" id="ampValue">--</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mapping-info">
+      <h2>🎛️ Sensor-to-Sound Mappings</h2>
+      <div class="mapping-list">
+        <div class="mapping-item">
+          <strong>Roll:</strong>
+          <span>Rotation around long axis → <code>freq</code> (100-1000 Hz, exponential)</span>
+        </div>
+        <div class="mapping-item">
+          <strong>Pitch:</strong>
+          <span>Forward/back tilt → <code>amp</code> (0.0-0.8, linear)</span>
+        </div>
+        <div class="mapping-item">
+          <strong>Yaw:</strong>
+          <span>Compass rotation → <code>pan</code> (-1.0 to 1.0, stereo position)</span>
+        </div>
+        <div class="mapping-item">
+          <strong>Smoothing:</strong>
+          <span>Low-pass filter (α=0.3) prevents jitter</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    // Import SuperSonic (adjust path as needed)
+    import { SuperSonic } from '../dist/supersonic.js';
+
+    // State
+    let sonic = null;
+    let ws = null;
+    let currentNodeId = null;
+    let messageCount = 0;
+
+    // DOM elements
+    const bootBtn = document.getElementById('bootBtn');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const oscStatus = document.getElementById('oscStatus');
+    const sonicStatus = document.getElementById('sonicStatus');
+    const synthStatus = document.getElementById('synthStatus');
+    const messageCountEl = document.getElementById('messageCount');
+    const phoneViz = document.getElementById('phoneViz');
+    const rollValue = document.getElementById('rollValue');
+    const pitchValue = document.getElementById('pitchValue');
+    const freqValue = document.getElementById('freqValue');
+    const ampValue = document.getElementById('ampValue');
+
+    // Smoothing class
+    class Smoother {
+      constructor(alpha = 0.3) {
+        this.alpha = alpha;
+        this.value = null;
+      }
+
+      update(newValue) {
+        if (this.value === null) {
+          this.value = newValue;
+        } else {
+          this.value = this.alpha * newValue + (1 - this.alpha) * this.value;
+        }
+        return this.value;
+      }
+    }
+
+    const smoothers = {
+      freq: new Smoother(0.3),
+      amp: new Smoother(0.5),
+      pan: new Smoother(0.4)
+    };
+
+    // Utility functions
+    function scale(value, inMin, inMax, outMin, outMax) {
+      const normalized = (value - inMin) / (inMax - inMin);
+      return normalized * (outMax - outMin) + outMin;
+    }
+
+    function expScale(value, inMin, inMax, outMin, outMax) {
+      const normalized = (value - inMin) / (inMax - inMin);
+      return outMin * Math.pow(outMax / outMin, normalized);
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    // Boot SuperSonic
+    bootBtn.onclick = async () => {
+      bootBtn.disabled = true;
+      bootBtn.textContent = '⏳ Booting...';
+
+      try {
+        sonic = new SuperSonic({
+          workerBaseURL: '../dist/workers/',
+          wasmBaseURL: '../dist/wasm/',
+          synthdefBaseURL: 'https://unpkg.com/supersonic-scsynth-synthdefs@latest/synthdefs/'
+        });
+
+        await sonic.init();
+        await sonic.loadSynthDefs(['sonic-pi-prophet']);
+
+        sonicStatus.classList.add('active');
+        startBtn.disabled = false;
+        bootBtn.textContent = '✅ Booted';
+
+        // Connect to OSC bridge
+        connectWebSocket();
+      } catch (err) {
+        console.error('Boot error:', err);
+        bootBtn.textContent = '❌ Boot Failed';
+        bootBtn.disabled = false;
+      }
+    };
+
+    // Connect to WebSocket bridge
+    function connectWebSocket() {
+      ws = new WebSocket('ws://localhost:8080');
+
+      ws.onopen = () => {
+        oscStatus.classList.add('active');
+        console.log('✅ Connected to OSC bridge');
+      };
+
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        messageCount++;
+        messageCountEl.textContent = `Messages: ${messageCount}`;
+
+        handleOSCMessage(msg);
+      };
+
+      ws.onerror = (err) => {
+        console.error('WebSocket error:', err);
+      };
+
+      ws.onclose = () => {
+        oscStatus.classList.remove('active');
+        console.log('❌ Disconnected from OSC bridge');
+
+        // Retry connection after 3 seconds
+        setTimeout(connectWebSocket, 3000);
+      };
+    }
+
+    // Handle OSC messages
+    function handleOSCMessage(msg) {
+      const { address, args } = msg;
+
+      // MotionSender / GyrOSC format
+      if (address === '/gyrosc/attitude') {
+        const [roll, pitch, yaw] = args;
+        updateSynthFromAttitude(roll, pitch, yaw);
+      }
+
+      // PhyOSC format (watch)
+      else if (address === '/watch/attitude/roll') {
+        const roll = args[0];
+        const pitch = args[1] || 0; // May need separate messages
+        const yaw = args[2] || 0;
+        updateSynthFromAttitude(roll, pitch, yaw);
+      }
+
+      // Generic attitude format
+      else if (address.includes('attitude')) {
+        const roll = args[0] || 0;
+        const pitch = args[1] || 0;
+        const yaw = args[2] || 0;
+        updateSynthFromAttitude(roll, pitch, yaw);
+      }
+    }
+
+    // Update synth parameters from attitude data
+    function updateSynthFromAttitude(roll, pitch, yaw) {
+      // Update visualization
+      rollValue.textContent = `${(roll * 180 / Math.PI).toFixed(1)}°`;
+      pitchValue.textContent = `${(pitch * 180 / Math.PI).toFixed(1)}°`;
+
+      // Update phone visualization
+      phoneViz.style.transform = `
+        rotateX(${pitch * 180 / Math.PI}deg)
+        rotateY(${roll * 180 / Math.PI}deg)
+        rotateZ(${yaw * 180 / Math.PI}deg)
+      `;
+
+      if (!currentNodeId) return;
+
+      // Map roll (-π to π) to frequency (100-1000 Hz, exponential)
+      const freq = expScale(
+        clamp(roll, -Math.PI, Math.PI),
+        -Math.PI, Math.PI,
+        100, 1000
+      );
+      const smoothFreq = smoothers.freq.update(freq);
+
+      // Map pitch (-π/2 to π/2) to amplitude (0.0-0.8)
+      const amp = scale(
+        clamp(pitch, -Math.PI/2, Math.PI/2),
+        -Math.PI/2, Math.PI/2,
+        0.0, 0.8
+      );
+      const smoothAmp = smoothers.amp.update(amp);
+
+      // Map yaw (-π to π) to pan (-1.0 to 1.0)
+      const pan = scale(
+        clamp(yaw, -Math.PI, Math.PI),
+        -Math.PI, Math.PI,
+        -1.0, 1.0
+      );
+      const smoothPan = smoothers.pan.update(pan);
+
+      // Update display
+      freqValue.textContent = `${smoothFreq.toFixed(1)}`;
+      ampValue.textContent = smoothAmp.toFixed(2);
+
+      // Send OSC to SuperSonic
+      sonic.send('/n_set', currentNodeId,
+        'freq', smoothFreq,
+        'amp', smoothAmp,
+        'pan', smoothPan
+      );
+    }
+
+    // Start synth
+    startBtn.onclick = () => {
+      if (!sonic) return;
+
+      currentNodeId = Math.floor(Math.random() * 100000);
+      sonic.send('/s_new', 'sonic-pi-prophet', currentNodeId, 0, 0,
+        'note', 60,
+        'freq', 440,
+        'amp', 0.5,
+        'pan', 0.0
+      );
+
+      synthStatus.classList.add('active');
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+
+      console.log('✅ Synth started, node ID:', currentNodeId);
+    };
+
+    // Stop synth
+    stopBtn.onclick = () => {
+      if (!sonic || !currentNodeId) return;
+
+      sonic.send('/n_free', currentNodeId);
+      currentNodeId = null;
+
+      synthStatus.classList.remove('active');
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+
+      console.log('⏹️ Synth stopped');
+    };
+  </script>
+</body>
+</html>

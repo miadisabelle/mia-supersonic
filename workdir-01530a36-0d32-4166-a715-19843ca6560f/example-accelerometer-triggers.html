@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Example 2: Accelerometer-Triggered Synthesis</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Cascadia Code', monospace, system-ui;
+      background: linear-gradient(135deg, #11998e, #38ef7d);
+      color: #fff;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .subtitle {
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 30px;
+      font-size: 0.9rem;
+    }
+
+    .status-bar {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      animation: pulse 2s infinite;
+    }
+
+    .status-indicator.active {
+      background: #fff;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .controls {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      color: #11998e;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      font-family: inherit;
+      font-weight: bold;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .gesture-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .gesture-card {
+      background: rgba(0, 0, 0, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      padding: 25px;
+      text-align: center;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .gesture-card.triggered {
+      background: rgba(255, 255, 255, 0.9);
+      border-color: #fff;
+      color: #11998e;
+      transform: scale(1.05);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .gesture-card.triggered::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      transform: translate(-50%, -50%);
+      animation: ripple 0.6s ease-out;
+    }
+
+    @keyframes ripple {
+      to {
+        width: 300px;
+        height: 300px;
+        opacity: 0;
+      }
+    }
+
+    .gesture-icon {
+      font-size: 4rem;
+      margin-bottom: 15px;
+      display: block;
+    }
+
+    .gesture-name {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .gesture-desc {
+      font-size: 0.85rem;
+      opacity: 0.8;
+      margin-bottom: 15px;
+    }
+
+    .gesture-value {
+      font-size: 2rem;
+      font-weight: bold;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .accel-visualizer {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      padding: 30px;
+      margin-bottom: 20px;
+    }
+
+    .accel-visualizer h2 {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .accel-bars {
+      display: grid;
+      gap: 15px;
+    }
+
+    .accel-bar {
+      display: grid;
+      grid-template-columns: 60px 1fr 60px;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .accel-label {
+      font-weight: bold;
+      text-align: right;
+    }
+
+    .accel-track {
+      height: 30px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 15px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .accel-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #fff, rgba(255, 255, 255, 0.5));
+      border-radius: 15px;
+      transition: width 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 10px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: #11998e;
+    }
+
+    .settings {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .settings h2 {
+      font-size: 1.2rem;
+      margin-bottom: 15px;
+    }
+
+    .setting-row {
+      display: grid;
+      grid-template-columns: 200px 1fr 100px;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #fff;
+    }
+
+    .hint {
+      background: rgba(255, 255, 255, 0.1);
+      border-left: 4px solid #fff;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 20px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎵 Example 2: Accelerometer-Triggered Synthesis</h1>
+    <p class="subtitle">Shake, tilt, and move your iPhone to trigger different sounds</p>
+
+    <div class="status-bar">
+      <div class="status-item">
+        <div class="status-indicator" id="oscStatus"></div>
+        <span>OSC Bridge</span>
+      </div>
+      <div class="status-item">
+        <div class="status-indicator" id="sonicStatus"></div>
+        <span>SuperSonic</span>
+      </div>
+      <div class="status-item">
+        <span id="messageCount">Messages: 0</span>
+      </div>
+      <div class="status-item">
+        <span id="triggerCount">Triggers: 0</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="bootBtn">🚀 Boot SuperSonic</button>
+    </div>
+
+    <div class="gesture-grid">
+      <div class="gesture-card" id="shakeCard">
+        <span class="gesture-icon">🤝</span>
+        <div class="gesture-name">Shake</div>
+        <div class="gesture-desc">Rapid back-and-forth motion</div>
+        <div class="gesture-value" id="shakeValue">0.00</div>
+      </div>
+
+      <div class="gesture-card" id="tiltUpCard">
+        <span class="gesture-icon">⬆️</span>
+        <div class="gesture-name">Tilt Up</div>
+        <div class="gesture-desc">Lift phone upward</div>
+        <div class="gesture-value" id="tiltUpValue">0.00</div>
+      </div>
+
+      <div class="gesture-card" id="tiltDownCard">
+        <span class="gesture-icon">⬇️</span>
+        <div class="gesture-name">Tilt Down</div>
+        <div class="gesture-desc">Lower phone downward</div>
+        <div class="gesture-value" id="tiltDownValue">0.00</div>
+      </div>
+
+      <div class="gesture-card" id="rotateCard">
+        <span class="gesture-icon">🔄</span>
+        <div class="gesture-name">Rotate</div>
+        <div class="gesture-desc">Spin phone around Z-axis</div>
+        <div class="gesture-value" id="rotateValue">0.00</div>
+      </div>
+    </div>
+
+    <div class="accel-visualizer">
+      <h2>📊 Real-Time Accelerometer Data</h2>
+      <div class="accel-bars">
+        <div class="accel-bar">
+          <div class="accel-label">X-Axis:</div>
+          <div class="accel-track">
+            <div class="accel-fill" id="accelXBar" style="width: 50%;">
+              <span id="accelXValue">0.00</span>
+            </div>
+          </div>
+          <div>g</div>
+        </div>
+
+        <div class="accel-bar">
+          <div class="accel-label">Y-Axis:</div>
+          <div class="accel-track">
+            <div class="accel-fill" id="accelYBar" style="width: 50%;">
+              <span id="accelYValue">0.00</span>
+            </div>
+          </div>
+          <div>g</div>
+        </div>
+
+        <div class="accel-bar">
+          <div class="accel-label">Z-Axis:</div>
+          <div class="accel-track">
+            <div class="accel-fill" id="accelZBar" style="width: 50%;">
+              <span id="accelZValue">0.00</span>
+            </div>
+          </div>
+          <div>g</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings">
+      <h2>⚙️ Threshold Settings</h2>
+
+      <div class="setting-row">
+        <label>Shake Threshold:</label>
+        <input type="range" id="shakeThreshold" min="0.5" max="3.0" step="0.1" value="2.0">
+        <span id="shakeThresholdValue">2.0 g</span>
+      </div>
+
+      <div class="setting-row">
+        <label>Tilt Threshold:</label>
+        <input type="range" id="tiltThreshold" min="0.3" max="2.0" step="0.1" value="1.0">
+        <span id="tiltThresholdValue">1.0 g</span>
+      </div>
+
+      <div class="setting-row">
+        <label>Rotation Threshold:</label>
+        <input type="range" id="rotateThreshold" min="1.0" max="10.0" step="0.5" value="5.0">
+        <span id="rotateThresholdValue">5.0 rad/s</span>
+      </div>
+
+      <div class="hint">
+        💡 <strong>Tip:</strong> Lower thresholds = more sensitive. Adjust based on your movement style!
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { SuperSonic } from '../dist/supersonic.js';
+
+    // State
+    let sonic = null;
+    let ws = null;
+    let messageCount = 0;
+    let triggerCount = 0;
+
+    // Threshold values
+    let thresholds = {
+      shake: 2.0,
+      tilt: 1.0,
+      rotate: 5.0
+    };
+
+    // Debounce timers (prevent rapid re-triggering)
+    const debounceTimers = {
+      shake: 0,
+      tiltUp: 0,
+      tiltDown: 0,
+      rotate: 0
+    };
+    const DEBOUNCE_MS = 500;
+
+    // Previous values (for detecting changes)
+    let prevAccel = { x: 0, y: 0, z: 0 };
+
+    // DOM elements
+    const bootBtn = document.getElementById('bootBtn');
+    const oscStatus = document.getElementById('oscStatus');
+    const sonicStatus = document.getElementById('sonicStatus');
+    const messageCountEl = document.getElementById('messageCount');
+    const triggerCountEl = document.getElementById('triggerCount');
+
+    const shakeCard = document.getElementById('shakeCard');
+    const tiltUpCard = document.getElementById('tiltUpCard');
+    const tiltDownCard = document.getElementById('tiltDownCard');
+    const rotateCard = document.getElementById('rotateCard');
+
+    const shakeValue = document.getElementById('shakeValue');
+    const tiltUpValue = document.getElementById('tiltUpValue');
+    const tiltDownValue = document.getElementById('tiltDownValue');
+    const rotateValue = document.getElementById('rotateValue');
+
+    const accelXBar = document.getElementById('accelXBar');
+    const accelYBar = document.getElementById('accelYBar');
+    const accelZBar = document.getElementById('accelZBar');
+    const accelXValue = document.getElementById('accelXValue');
+    const accelYValue = document.getElementById('accelYValue');
+    const accelZValue = document.getElementById('accelZValue');
+
+    const shakeThreshold = document.getElementById('shakeThreshold');
+    const tiltThreshold = document.getElementById('tiltThreshold');
+    const rotateThreshold = document.getElementById('rotateThreshold');
+    const shakeThresholdValue = document.getElementById('shakeThresholdValue');
+    const tiltThresholdValue = document.getElementById('tiltThresholdValue');
+    const rotateThresholdValue = document.getElementById('rotateThresholdValue');
+
+    // Threshold slider updates
+    shakeThreshold.oninput = () => {
+      thresholds.shake = parseFloat(shakeThreshold.value);
+      shakeThresholdValue.textContent = `${thresholds.shake.toFixed(1)} g`;
+    };
+
+    tiltThreshold.oninput = () => {
+      thresholds.tilt = parseFloat(tiltThreshold.value);
+      tiltThresholdValue.textContent = `${thresholds.tilt.toFixed(1)} g`;
+    };
+
+    rotateThreshold.oninput = () => {
+      thresholds.rotate = parseFloat(rotateThreshold.value);
+      rotateThresholdValue.textContent = `${thresholds.rotate.toFixed(1)} rad/s`;
+    };
+
+    // Boot SuperSonic
+    bootBtn.onclick = async () => {
+      bootBtn.disabled = true;
+      bootBtn.textContent = '⏳ Booting...';
+
+      try {
+        sonic = new SuperSonic({
+          workerBaseURL: '../dist/workers/',
+          wasmBaseURL: '../dist/wasm/',
+          synthdefBaseURL: 'https://unpkg.com/supersonic-scsynth-synthdefs@latest/synthdefs/'
+        });
+
+        await sonic.init();
+        await sonic.loadSynthDefs([
+          'sonic-pi-beep',
+          'sonic-pi-prophet',
+          'sonic-pi-dsaw',
+          'sonic-pi-tb303'
+        ]);
+
+        sonicStatus.classList.add('active');
+        bootBtn.textContent = '✅ Ready - Start moving your phone!';
+
+        connectWebSocket();
+      } catch (err) {
+        console.error('Boot error:', err);
+        bootBtn.textContent = '❌ Boot Failed';
+        bootBtn.disabled = false;
+      }
+    };
+
+    // Connect to WebSocket bridge
+    function connectWebSocket() {
+      ws = new WebSocket('ws://localhost:8080');
+
+      ws.onopen = () => {
+        oscStatus.classList.add('active');
+        console.log('✅ Connected to OSC bridge');
+      };
+
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        messageCount++;
+        messageCountEl.textContent = `Messages: ${messageCount}`;
+
+        handleOSCMessage(msg);
+      };
+
+      ws.onerror = (err) => {
+        console.error('WebSocket error:', err);
+      };
+
+      ws.onclose = () => {
+        oscStatus.classList.remove('active');
+        console.log('❌ Disconnected from OSC bridge');
+        setTimeout(connectWebSocket, 3000);
+      };
+    }
+
+    // Handle OSC messages
+    function handleOSCMessage(msg) {
+      const { address, args } = msg;
+
+      // MotionSender / GyrOSC accelerometer
+      if (address === '/gyrosc/accel') {
+        const [x, y, z] = args;
+        updateAccelerometer(x, y, z);
+      }
+      // MotionSender gyroscope
+      else if (address === '/gyrosc/gyro') {
+        const [x, y, z] = args;
+        checkRotation(z); // Z-axis rotation
+      }
+      // PhyOSC accelerometer
+      else if (address === '/watch/accel/x' || address === '/phone/accel/x') {
+        // PhyOSC sends separate messages per axis
+        // Store and wait for all three
+      }
+    }
+
+    // Update accelerometer visualization
+    function updateAccelerometer(x, y, z) {
+      // Update bars (map -2g to +2g → 0% to 100%)
+      const xPercent = ((x + 2) / 4) * 100;
+      const yPercent = ((y + 2) / 4) * 100;
+      const zPercent = ((z + 2) / 4) * 100;
+
+      accelXBar.style.width = `${xPercent}%`;
+      accelYBar.style.width = `${yPercent}%`;
+      accelZBar.style.width = `${zPercent}%`;
+
+      accelXValue.textContent = x.toFixed(2);
+      accelYValue.textContent = y.toFixed(2);
+      accelZValue.textContent = z.toFixed(2);
+
+      // Detect gestures
+      checkShake(x, y, z);
+      checkTilt(y);
+
+      prevAccel = { x, y, z };
+    }
+
+    // Check for shake gesture (rapid acceleration change)
+    function checkShake(x, y, z) {
+      const magnitude = Math.sqrt(x*x + y*y + z*z);
+      shakeValue.textContent = magnitude.toFixed(2);
+
+      if (magnitude > thresholds.shake && Date.now() - debounceTimers.shake > DEBOUNCE_MS) {
+        triggerGesture('shake', magnitude);
+      }
+    }
+
+    // Check for tilt gestures
+    function checkTilt(y) {
+      tiltUpValue.textContent = Math.max(0, y).toFixed(2);
+      tiltDownValue.textContent = Math.max(0, -y).toFixed(2);
+
+      if (y > thresholds.tilt && Date.now() - debounceTimers.tiltUp > DEBOUNCE_MS) {
+        triggerGesture('tiltUp', y);
+      } else if (y < -thresholds.tilt && Date.now() - debounceTimers.tiltDown > DEBOUNCE_MS) {
+        triggerGesture('tiltDown', Math.abs(y));
+      }
+    }
+
+    // Check for rotation gesture
+    function checkRotation(angularVelocityZ) {
+      const magnitude = Math.abs(angularVelocityZ);
+      rotateValue.textContent = magnitude.toFixed(2);
+
+      if (magnitude > thresholds.rotate && Date.now() - debounceTimers.rotate > DEBOUNCE_MS) {
+        triggerGesture('rotate', magnitude);
+      }
+    }
+
+    // Trigger gesture (play sound + visual feedback)
+    function triggerGesture(gesture, value) {
+      if (!sonic) return;
+
+      triggerCount++;
+      triggerCountEl.textContent = `Triggers: ${triggerCount}`;
+      debounceTimers[gesture] = Date.now();
+
+      console.log(`🎵 Triggered: ${gesture} (${value.toFixed(2)})`);
+
+      // Visual feedback
+      let card, synthDef, note;
+
+      switch(gesture) {
+        case 'shake':
+          card = shakeCard;
+          synthDef = 'sonic-pi-beep';
+          note = 60 + Math.floor(Math.random() * 12); // Random note
+          break;
+        case 'tiltUp':
+          card = tiltUpCard;
+          synthDef = 'sonic-pi-prophet';
+          note = 72; // High note
+          break;
+        case 'tiltDown':
+          card = tiltDownCard;
+          synthDef = 'sonic-pi-dsaw';
+          note = 48; // Low note
+          break;
+        case 'rotate':
+          card = rotateCard;
+          synthDef = 'sonic-pi-tb303';
+          note = 60;
+          break;
+      }
+
+      // Trigger visual
+      card.classList.add('triggered');
+      setTimeout(() => card.classList.remove('triggered'), 600);
+
+      // Trigger sound
+      const nodeId = Math.floor(Math.random() * 100000);
+      sonic.send('/s_new', synthDef, nodeId, 0, 0,
+        'note', note,
+        'amp', Math.min(0.8, value / 3), // Scale amplitude by gesture intensity
+        'release', 0.5
+      );
+
+      // Auto-release after 500ms
+      setTimeout(() => {
+        sonic.send('/n_free', nodeId);
+      }, 500);
+    }
+  </script>
+</body>
+</html>
