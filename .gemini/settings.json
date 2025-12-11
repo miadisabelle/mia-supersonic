@@ -1,0 +1,39 @@
+{
+  "mcpServers": {
+	  "github_miadisabelle": {
+      "command": "npx",
+      "args": [
+	      "-y",
+	      "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN_MIADISABELLE}",
+        "GITHUB_TOOLSETS": "issues,pull_requests,code_search"
+      }
+    }
+,
+	  "iaip-mcp": {
+      "command": "node",
+      "args": [
+        "/src/IAIP/mcp/dist/index.js"
+      ],
+      "env": { }
+    }
+,
+	    "lighthouse": {
+      "command": "node",
+      "args": [
+        "/src/STPB/mcp-server/dist/index.js"
+      ],
+      "env": {
+	      "STPB_API_URL": "${STPB_API_URL}",       
+	      "MCP_AUTH_TOKEN": "${MCP_AUTH_TOKEN}" 
+      }
+    }
+,
+    "sonic-charts": {     
+	 "command": "npx", 
+	 "args": ["-y", "coaia-memory@2.3.0", "--memory-path", "/home/mia/workspace/supersonic/charts/chart-251211.jsonl"]
+    }
+  }
+}
